@@ -7,73 +7,200 @@
 # Import Needed Library
 ###############################################################################
 import urllib
-#import api
+import pandas as pd
+import xml.etree.ElementTree as et
 
-# Define Global Variables 
+# Define Global Variable
 ###############################################################################
-
 trulia = 'http://api.trulia.com/webservices.php?' # Set Trulia URL
 
-
-# Set enviromental variables
+# Define Function To Return Cities in State.
 ###############################################################################
-location_functions = ['getCitiesInState', 'getCountiesInState', 'getNeighborhoodsInCity', 'getStates', 'getZipCodesInState']
+def get_cities(state, api_key):
 
-stat_functions = ['getCityStats', 'getCountyStats', 'getNeighborhoodStats', 'getStateStats', 'getZipCodesStats'] # List of stat functions for error checking
+	# Set Up URL for API Call
+	url = trulia + urllib.urlencode({'library':'LocationInfo', 'function':"getCitiesInState", 'state':state, 'apikey':api_key}) # Create URL
 
+	# Connect to API
+	page = urllib.urlopen(url) 
+	xml_string = page.read()
 
-# Create a function to list the avaliable options for the LocationInfo Library.
-###############################################################################
-def location_options():
-	print 'Avaliable Location Functions Are: \n'
-	for option in location_functions:
-		print option, ', \n'
+	# Create Storage Dictionary
+	output = {"name":[], "code":[], "lon":[], "lat":[]}
 
-# Create a function to list the avaliable options for the LocationInfo Library.
-###############################################################################
-def stat_options():
-	print 'Avaliable Stats Functions Are: \n'
-	for option in stat_functions:
-		print option, ', \n'
+	# Convert the data returned from api to XML
+	xml_element = et.fromstring(xml_string) # Create to Element from string
+	xml_tree = et.ElementTree(xml_element) # Convert Element to Element Tree
 
+	data_node = xml_tree.findall('.//city')
 
-# Define Function for locationInfo API
-###############################################################################
-def location_api(function, city, state, api_key):
+	for county in data_node:
+		name = county.find('name').text
+		output["name"].append(name)
+
+		output["code"].append(state)
+
+		lon = county.find('longitude').text
+		output["lon"].append(lon)
+
+		lat = county.find('latitude').text
+		output["lat"].append(lat)
 	
-	# Check that function parameter is valid
-	if function not in location_functions: 
-	 	print 'Check Specified Function' 		
-		
-	# When function is correct execute API call
-	else: 
-		url = trulia + urllib.urlencode({'library':'LocationInfo', 'function':function, 'city':city, 'state':state, 'apikey':api_key}) # Create url
+	# Prepare data for use outside function. 
+	data_frame = pd.DataFrame(output) # Convert to a data frame for easy import in R
+	return data_frame
 
-		# Connect to API
-		page = urllib.urlopen(url) 
-		data = page.read()
-		return data # Make data accesable outside of function. 
-
-# Define function to call state_stats
+# Define Function To Return Cities in State.
 ###############################################################################
-def state_stats(state, start_date, end_date, api_key):
-
+def get_neighborhood(city, state, api_key):
 	# Set Up URL for API Call
-	url = trulia + urllib.urlencode({'library':'TruliaStats', 'function':'getStateStats', 'state':state, 'startDate':start_date, 'endDate':end_date, 'apikey':api_key}) # Create url
+	url = trulia + urllib.urlencode({'library':'LocationInfo', 'function':"getNeighborhoodsInCity", 'city':city, 'state':state, 'apikey':api_key}) # Create URL
 
 	# Connect to API
 	page = urllib.urlopen(url) 
-	data = page.read()
-	return data # Make data accesable outside of function. 
+	xml_string = page.read()
+	
+	# Create Storage Dictionary
+	output = {"name":[], "id":[]}
 
-# Define Function to call getCityStats
+	# Convert the data returned from api to XML
+	xml_element = et.fromstring(xml_string) # Create to Element from string
+	xml_tree = et.ElementTree(xml_element) # Convert Element to Element Tree
+	
+	#Parse XML
+	data_node = xml_tree.findall('.//neighborhood')
+
+	for neighborhood in data_node:
+		name = neighborhood.find('name').text
+		iD = neighborhood.find('id').text
+			
+		output["name"].append(name)
+		output["id"].append(iD)
+
+	data_frame = pd.DataFrame(output)
+	return data_frame
+
+# Define Function To Return Cities in State.
 ###############################################################################
-def city_stats(city, state, start_date, end_date, api_key):
+def get_zipcode(state, api_key):
 
 	# Set Up URL for API Call
-	url = trulia + urllib.urlencode({'library':'TruliaStats', 'function':'getCityStats', 'city':city, 'state':state, 'startDate':start_date, 'endDate':end_date, 'apikey':api_key}) # Create url
+	url = trulia + urllib.urlencode({'library':'LocationInfo', 'function':"getZipCodesInState", 'state':state, 'apikey':api_key}) # Create URL
 
 	# Connect to API
 	page = urllib.urlopen(url) 
-	data = page.read()
-	return data # Make data accesable outside of function.
+	xml_string = page.read()
+	
+	# Create Storage Dictionary
+	output = {"state":[], "code":[]}
+
+	# Convert the data returned from api to XML
+	xml_element = et.fromstring(xml_string) # Create to Element from string
+	xml_tree = et.ElementTree(xml_element) # Convert Element to Element Tree
+	
+	#Parse XML
+	data_node = xml_tree.findall('.//neighborhood')
+
+	for code in data_node:
+		output["state"].append(state)
+
+		ZIP = code.find('name').text
+		output["code"].append(ZIP)
+
+	data_frame = pd.DataFrame(output)
+	return data_frame
+
+# Define Function To Return Counties in State.
+###############################################################################
+def get_counties(state, api_key):
+
+	# Set Up URL for API Call
+	url = trulia + urllib.urlencode({'library':'LocationInfo', 'function':"getCountiesInState", 'state':state, 'apikey':api_key}) # Create URL
+
+	# Connect to API
+	page = urllib.urlopen(url) 
+	xml_string = page.read()
+	
+	# Create Storage Dictionary
+	output = {"state":[], "name":[], "lon":[], "lat":[]}
+
+	# Convert the data returned from api to XML
+	xml_element = et.fromstring(xml_string) # Create to Element from string
+	xml_tree = et.ElementTree(xml_element) # Convert Element to Element Tree
+
+	# Parse XML
+	data_node = xml_tree.findall('.//county')
+
+	for county in data_node:
+		output["state"].append(state)
+
+		name = county.find('name').text
+		output["name"].append(name)
+
+		lon = county.find('longitude').text
+		output["lon"].append(lon)
+
+		lat = county.find('latitude').text
+		output["lat"].append(lat)
+
+	data_frame = pd.DataFrame(output)
+	return data_frame
+
+
+# Define Function To Return List of States
+###############################################################################
+def get_states(api_key):
+
+	# Set Up URL for API Call
+	url = trulia + urllib.urlencode({'library':'LocationInfo', 'function':"getStates", 'apikey':api_key})
+
+	# Connect to API
+	page = urllib.urlopen(url) 
+	xml_string = page.read()
+
+
+	# Create Storage
+	output = {"name":[], "code":[], "lon":[], "lat":[]}
+
+	# Convert the data returned from api to XML
+	xml_element = et.fromstring(xml_string) # Create to Element from string
+	xml_tree = et.ElementTree(xml_element) # Convert Element to Element Tree
+
+	# Parse XML
+	data_node = xml_tree.findall('.//state')
+	
+	for states in data_node:
+		name = states.find('name').text
+		output["name"].append(name)
+
+		code = states.find('stateCode').text
+		output["code"].append(code)
+
+		lon = states.find('longitude').text
+		output["lon"].append(lon)
+
+		lat = states.find('latitude').text
+		output["lat"].append(lat)
+
+	data_frame = pd.DataFrame(output)
+	return data_frame	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

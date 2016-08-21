@@ -1,24 +1,26 @@
-# Import Needed Library
+# Import Libriaries
 ###############################################################################
 import urllib
 import xml.etree.ElementTree as et
 import pandas as pd
 
-# Create Function to Call and Parse Turlia getCityStats API
+# Define Global Variable
 ###############################################################################
-def city_stats(city, state, start_date, end_date, api_key):
+trulia = 'http://api.trulia.com/webservices.php?' # Set Trulia URL
 
-	trulia = 'http://api.trulia.com/webservices.php?' # Set Trulia URL
+# Define function to call trulia API and parse the retruned XML
+###############################################################################
+def neighborhood_stats(neighborhoodid, start_date, end_date, api_key):
 
 	# Set Up URL for API Call
-	url = trulia + urllib.urlencode({'library':'TruliaStats', 'function':'getCityStats', 'city':city, 'state':state, 'startDate':start_date, 'endDate':end_date, 'apikey':api_key}) # Create url
+	url = trulia + urllib.urlencode({'library':'TruliaStats', 'function':'getNeighborhoodStats', 'neighborhoodId':neighborhoodid, 'startDate':start_date, 'endDate':end_date, 'apikey':api_key}) # Create url
 
 	# Connect to API
 	page = urllib.urlopen(url) 
 	xml_string = page.read()
 
 	# Create dictionary for storage of parsed xml
-	output = {"date":[], "city":[], "state":[], "type":[], "properties":[], "medianPrice":[], "avgPrice":[]}
+	output = {"date":[], "neighborhoodid":[], "type":[], "properties":[], "medianPrice":[], "avgPrice":[]}
 
 	# Convert the data returned from api to XML
 	xml_element = et.fromstring(xml_string) # Create to Element from string
@@ -35,9 +37,7 @@ def city_stats(city, state, start_date, end_date, api_key):
 		for category in categories:
 			output["date"].append(record_date) 
 
-			output["city"].append(city)
-
-			output["state"].append(state)
+			output["neighborhoodid"].append(neighborhoodid)
 
 			tp = category.find("type").text
 			output["type"].append(tp)
